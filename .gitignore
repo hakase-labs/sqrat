@@ -13,6 +13,6 @@
 *.a
 
 # Visual Studio
-*.sld
+*.sln
 *.vcproj
 *.vcproj.rej
