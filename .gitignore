@@ -11,3 +11,8 @@
 *.lai
 *.la
 *.a
+
+# Visual Studio
+*.sld
+*.vcproj
+*.vcproj.rej
