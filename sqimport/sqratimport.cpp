@@ -44,11 +44,11 @@
 
 typedef SQRESULT (*SQMODULELOAD)(HSQUIRRELVM v, HSQAPI sq);
 
-HSQAPI sqapi = NULL;
+static HSQAPI sqapi = NULL;
 
 // Create and populate the HSQAPI structure with function pointers
 // If new functions are added to the Squirrel API, they should be added here too
-HSQAPI sqrat_newapi() {
+static HSQAPI sqrat_newapi() {
     HSQAPI sq = (HSQAPI)sq_malloc(sizeof(sq_api));
 
     /*vm*/
@@ -191,11 +191,8 @@ HSQAPI sqrat_newapi() {
     return sq;
 }
 
-void sqrat_deleteapi(HSQAPI sq) {
-    sq_free(sq, sizeof(sq_api));
-}
 
-SQRESULT sqrat_importscript(HSQUIRRELVM v, const SQChar* moduleName) {
+static SQRESULT sqrat_importscript(HSQUIRRELVM v, const SQChar* moduleName) {
     std::basic_string<SQChar> filename(moduleName);
     filename += _SC(".nut");
     if(SQ_FAILED(sqstd_loadfile(v, moduleName, true))) {
@@ -208,7 +205,11 @@ SQRESULT sqrat_importscript(HSQUIRRELVM v, const SQChar* moduleName) {
     return SQ_OK;
 }
 
-SQRESULT sqrat_importbin(HSQUIRRELVM v, const SQChar* moduleName) {
+static SQRESULT sqrat_importbin(HSQUIRRELVM v, const SQChar* moduleName) {
+#ifdef SQUNICODE
+#warning sqrat_importbin() Not Implemented
+    return SQ_ERROR;
+#else
     SQMODULELOAD modLoad = 0;
 
 #if defined(_WIN32)
@@ -248,6 +249,7 @@ SQRESULT sqrat_importbin(HSQUIRRELVM v, const SQChar* moduleName) {
     SQRESULT res = modLoad(v, sqapi);
 
     return res;
+#endif
 }
 
 SQRESULT sqrat_import(HSQUIRRELVM v) {
@@ -255,7 +257,7 @@ SQRESULT sqrat_import(HSQUIRRELVM v) {
     HSQOBJECT table;
     SQRESULT res = SQ_OK;
 
-    SQInteger top = sq_gettop(v);
+
     sq_getstring(v, -2, &moduleName);
     sq_getstackobj(v, -1, &table);
     sq_addref(v, &table);
@@ -269,11 +271,12 @@ SQRESULT sqrat_import(HSQUIRRELVM v) {
 
     sq_settop(v, 0); // Clean up the stack (just in case the module load leaves it messy)
     sq_pushobject(v, table); // return the target table
-
+    sq_release(v, &table);
+    
     return res;
 }
 
-SQInteger sqratbase_import(HSQUIRRELVM v) {
+static SQInteger sqratbase_import(HSQUIRRELVM v) {
     SQInteger args = sq_gettop(v);
     switch(args) {
     case 2:

@@ -24,44 +24,34 @@
 
 #include <gtest/gtest.h>
 #include <sqrat.h>
+#include <sqrat/sqratVM.h>
 #include "Fixture.h"
 /* test demonstrating Sourceforge bug 3507590 */
    
 using namespace Sqrat;
 
-class C
+class simpleclass 
 {
-    
 public:
-    int suspend()
-    {
-        return sq_suspendvm(DefaultVM::Get());
-    }
+    simpleclass() {}
+    void memfun() {}
 };
 
-
-TEST_F(SqratTest, SuspendVM)
+void bind(HSQUIRRELVM vm)
 {
-    DefaultVM::Set(vm);
-    int i; 
-    Class<C> cclass(vm, _SC("C"));
-    cclass.Func(_SC("suspend"), &C::suspend);
-    
-    RootTable().Bind(_SC("C"), cclass);
-    Script script;
-    script.CompileString(_SC("\
-        c <- C(); \
-        //c.suspend(); /* this would fail in the curent Sqrat; no solution yet */\
-        ::suspend(); \
-        gTest.EXPECT_INT_EQ(1, 0); /* should not reach here */ \
-        "));
-    if (Sqrat::Error::Occurred(vm)) {
-        FAIL() << _SC("Compile Failed: ") << Sqrat::Error::Message(vm);        
-    }
+    Sqrat::Class<simpleclass> sqClass(vm, _SC("simpleclass"));
+    sqClass               
+    .Func(_SC("memfun"), &simpleclass::memfun);
+    Sqrat::RootTable(vm).Bind(_SC("simpleclass"), sqClass);    
 
-    script.Run();
-    if (Sqrat::Error::Occurred(vm)) {
-        FAIL() << _SC("Run Failed: ") << Sqrat::Error::Message(vm);
-    }
+}
+
+TEST_F(SqratTest, SqratVM)
+{
+    SqratVM vm1;
+    SqratVM vm2;
+    
+    bind(vm1.GetVM());
+    bind(vm2.GetVM());
     
 }
