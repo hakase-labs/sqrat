@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2012 Li-Cheng (Andy) Tai, atai@atai.org
+// Copyright (c) 2013 Li-Cheng (Andy) Tai
 //
 // This software is provided 'as-is', without any express or implied
 // warranty. In no event will the authors be held liable for any damages
@@ -21,47 +21,47 @@
 //  distribution.
 //
 
-
 #include <gtest/gtest.h>
 #include <sqrat.h>
 #include "Fixture.h"
-/* test demonstrating Sourceforge bug 3507590 */
-   
+
+
 using namespace Sqrat;
 
-class C
+
+class Entity 
 {
-    
 public:
-    int suspend()
-    {
-        return sq_suspendvm(DefaultVM::Get());
-    }
+    Entity *FindEntity() { return NULL ; }
+    
 };
 
 
-TEST_F(SqratTest, SuspendVM)
-{
+static const SQChar *sq_code = _SC("\
+    local entity = Entity(); \
+    gTest.EXPECT_FALSE(entity == null); \
+    entity = entity.FindEntity(); \
+    gTest.EXPECT_TRUE(entity == null); \
+       ");
+
+
+
+TEST_F(SqratTest, NullPointerReturn) {
     DefaultVM::Set(vm);
-    int i; 
-    Class<C> cclass(vm, _SC("C"));
-    cclass.Func(_SC("suspend"), &C::suspend);
     
-    RootTable().Bind(_SC("C"), cclass);
+    Class<Entity> entity(vm, _SC("Entity"));
+    entity.Func(_SC("FindEntity"), &Entity::FindEntity);
+    RootTable().Bind(_SC("Entity"), entity);
+        
     Script script;
-    script.CompileString(_SC("\
-        c <- C(); \
-        //c.suspend(); /* this would fail in the curent Sqrat; no solution yet */\
-        ::suspend(); \
-        gTest.EXPECT_INT_EQ(1, 0); /* should not reach here */ \
-        "));
+    script.CompileString(sq_code);
     if (Sqrat::Error::Occurred(vm)) {
-        FAIL() << _SC("Compile Failed: ") << Sqrat::Error::Message(vm);        
+        FAIL() << _SC("Compile Failed: ") << Sqrat::Error::Message(vm);
     }
 
     script.Run();
     if (Sqrat::Error::Occurred(vm)) {
         FAIL() << _SC("Run Failed: ") << Sqrat::Error::Message(vm);
     }
-    
+
 }
